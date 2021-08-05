@@ -80,7 +80,7 @@ def query_count():
             if type(payload) is str:
                 print(f'{payload} was submitted {ledger["strings"][payload]} times in this session')
                 # total = cur.execute(f"SELECT * FROM strings WHERE value = {payload}").rowcount
-                return jsonify({'payload': ledger["ints"][payload]}), 200
+                return jsonify({'payload': ledger["strings"][payload]}), 200
 
         except Exception as e:
             conn.rollback()
