@@ -60,12 +60,13 @@ def receive():
 @app.route('/query_count', methods=["POST"])
 def query_count():
     with sql.connect('database.db') as conn:
-        cur = conn.cursor()
-        conn.row_factory = sql.Row
+        # cur = conn.cursor()
+        # conn.row_factory = sql.Row
         try:
             content = request.get_json()
             data = json.loads(content)
             payload = data['payload']
+            # because of the defaultdicts I don't have to worry about getting a KeyError here
             if type(payload) is int:
                 print(f'{payload} was submitted {ledger["ints"][payload]} times in this session')
                 # this currently does not work as expected
