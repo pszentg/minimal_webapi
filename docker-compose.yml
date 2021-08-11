@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile
+    command: python app/server.py
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/python-flask
