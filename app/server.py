@@ -64,23 +64,24 @@ def query_count():
         return jsonify({'payload': ledger.get_count(payload)}), 200
 
     else:
+        query = {'value': payload}
         if type(payload) is int:
-            collection = db.ints.find()
-            query = [item for item in collection if item['value'] == payload]
-            print(f'{payload} was submitted {len(query)} times since the DB was initialized last.')
-            return jsonify({'payload': len(query)}), 200
+            results = db.ints.count_documents(query)
+            print(results)
+            print(f'{payload} was submitted {results} times since the DB was initialized last.')
+            return jsonify({'payload': results}), 200
 
         if type(payload) is float:
-            collection = db.floats.find()
-            query = [item for item in collection if item['value'] == payload]
-            print(f'{payload} was submitted {len(query)} times since the DB was initialized last.')
-            return jsonify({'payload': len(query)}), 200
+            results = db.floats.count_documents(query)
+            print(results)
+            print(f'{payload} was submitted {results} times since the DB was initialized last.')
+            return jsonify({'payload': results}), 200
 
         if type(payload) is str:
-            collection = db.strings.find()
-            query = [item for item in collection if item['value'] == payload]
-            print(f'{payload} was submitted {len(query)} times since the DB was initialized last.')
-            return jsonify({'payload': len(query)}), 200
+            results = db.strings.count_documents(query)
+            print(results)
+            print(f'{payload} was submitted {results} times since the DB was initialized last.')
+            return jsonify({'payload': results}), 200
 
 
 @app.route('/avg', methods=["POST"])
