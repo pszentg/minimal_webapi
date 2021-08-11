@@ -2,7 +2,6 @@ import json
 import logging
 from flask_pymongo import PyMongo
 from flask import Flask, request, jsonify
-from numpy import mean
 import argparse
 
 parser = argparse.ArgumentParser(description='Process some incoming HTTP requests.')
@@ -97,18 +96,15 @@ def query_avg():
             return jsonify({'payload': ledger.get_avg('floats')}), 200
 
     else:
-        if payload == 'int':
-            collection = db.ints.find()
-            ints = [item['value'] for item in collection]
+        pipeline = [
+            {"$group": {"_id": "1", "results": {"$avg": "$value"}}},
+        ]
 
-            # using numpy.mean() in case the db gets too large for statistics.mean()
-            return jsonify({'payload': mean(ints)}), 200
+        if payload == 'int':
+            return jsonify({'payload': list(db.floats.aggregate(pipeline))[0]["results"]}), 200
 
         if payload == 'float':
-            collection = db.floats.find()
-            floats = [item['value'] for item in collection]
-
-            return jsonify({'payload': mean(floats)}), 200
+            return jsonify({'payload': list(db.floats.aggregate(pipeline))[0]["results"]}), 200
 
 
 if __name__ == '__main__':
