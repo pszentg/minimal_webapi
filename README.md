@@ -20,6 +20,7 @@ the provided `send.py` script that does a few pre-defined interactions with the 
 Optionally, you can start the server with the -l flag: `python3 server.py -l`, this makes the server use a Ledger instance. It implements a similar functionality, but without interacting with the DB (making the server stateful), tracking the values locally.
 Storing and reading the values from the ledger reduces the processing complexity to O(1), as it stores them in a defaultdict instead of a list. This would not be an appropriate solution if the order of the requests matter.
 
+
 ## Possible improvements
 * Adding some security around the DB. Replacing Flask with Django would allow me to do some of these things
 without implementing them manually.

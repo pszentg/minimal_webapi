@@ -2,6 +2,7 @@ import json
 import logging
 from flask_pymongo import PyMongo
 from flask import Flask, request, jsonify
+from flask_caching import Cache
 import argparse
 
 parser = argparse.ArgumentParser(description='Process some incoming HTTP requests.')
@@ -10,8 +11,9 @@ parser.add_argument('--ledger', '-l', help='Switches the server to store the dat
 args = parser.parse_args()
 
 logger = logging.getLogger()
-
+cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
 app = Flask(__name__)
+cache.init_app(app)
 app.config["MONGO_URI"] = \
     "mongodb+srv://user:HcSrNasKdaBBwJ0z@cluster0.wyb5l.mongodb.net/minimal_webapi?retryWrites=true&w=majority"
 mongo = PyMongo(app)
@@ -24,6 +26,7 @@ if args.ledger:
 
 
 @app.route('/', methods=['POST'])
+@Cache.cached(cache, timeout=50)
 def receive():
     content = request.get_json()
     data = json.loads(content)
@@ -54,6 +57,7 @@ def receive():
 
 
 @app.route('/count', methods=["POST"])
+@Cache.cached(cache, timeout=50)
 def query_count():
     content = request.get_json()
     data = json.loads(content)
@@ -84,6 +88,7 @@ def query_count():
 
 
 @app.route('/avg', methods=["POST"])
+@Cache.cached(cache, timeout=50)
 def query_avg():
     content = request.get_json()
     data = json.loads(content)
