@@ -1,36 +1,47 @@
-import math
-from collections import defaultdict
+import logging
+from collections import Counter
 
 
 class Ledger:
     def __init__(self):
-        self.ints = defaultdict(int)
-        self.floats = defaultdict(int)
-        self.strings = defaultdict(int)
+        self.ints = []
+        self.floats = []
+        self.strings = []
+
+    def insert(self, item):
+        if type(item) is int:
+            self.ints.append(item)
+        elif type(item) is float:
+            self.floats.append(item)
+        elif type(item) is str:
+            self.strings.append(item)
+        else:
+            raise TypeError("Item is not supported by the ledger")
 
     def get_count(self, item):
         if type(item) is int:
-            return self.ints[item]
+            c = Counter(self.ints)
         elif type(item) is float:
-            return self.floats[item]
+            c = Counter(self.floats)
         elif type(item) is str:
-            return self.strings[item]
+            c = Counter(self.strings)
         else:
             raise TypeError(f"Type is not tracked by the ledger:{item}.")
+        logging.debug(f'counter object: {c},\nitem is: {item}')
+        return c[item]
 
     def get_avg(self, d_type):
         dividend = 0
-        # since we track the occurrences of the numbers in a defaultdict, the divisor is the sum of their values.
         divisor = 0
         if d_type == 'ints':
-            for k, v in self.ints.items():
-                dividend += int(k) * int(v)
-                divisor += v
+            for item in self.ints:
+                dividend += item
+                divisor = len(self.ints)
 
         elif d_type == 'floats':
-            for k, v in self.ints.items():
-                dividend += float(k) * float(v)
-                divisor += v
+            for item in self.floats:
+                dividend += item
+                divisor = len(self.floats)
         else:
             raise TypeError(f"Type is not tracked by the ledger:{d_type}.")
         try:

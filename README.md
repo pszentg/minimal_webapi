@@ -7,17 +7,19 @@ Docker is available for the project. If you have Docker and Docker Compose insta
 use `docker-compose up` to build and run the server. 
 
 ## Requirements locally
-requirements.txt is available, you can install the dependencies using `pip install -r requirements.txt` in the project root.
+This section is important if you want to try out using the ledger.
+`requirements.txt` is available, you can install the dependencies using `pip install -r requirements.txt` in the project root.
+You'll need redis to be installed on your system as well, on debian/ubuntu you can get it using `apt-get install redis-server`.
 
 ## Running locally
-Run the server from the project root using `python3 server.py`. 
+Run the server from the project root using `python3 app/server.py`. 
 
 ## Testing
 Assuming you installed the requirements, you can interact with the server with 
-the provided `send.py` script that does a few pre-defined interactions with the app.
+the provided `python3 app/send.py` script that does a few pre-defined interactions with the app.
 
 ## Design decisions
-Optionally, you can start the server with the -l flag: `python3 server.py -l`, this makes the server use a Ledger instance. It implements a similar functionality, but without interacting with the DB (making the server stateful), tracking the values locally.
+Optionally, you can start the server with the -l flag: `python3 app/server.py -l`, this makes the server use a Ledger instance. It implements a similar functionality, but without interacting with the DB (making the server stateful), tracking the values locally.
 Storing and reading the values from the ledger reduces the processing complexity to O(1), as it stores them in a defaultdict instead of a list. This would not be an appropriate solution if the order of the requests matter.
 
 

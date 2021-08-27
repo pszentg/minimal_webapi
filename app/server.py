@@ -1,44 +1,64 @@
 import json
-import logging
+from logging.config import dictConfig
 from flask_pymongo import PyMongo
 from flask import Flask, request, jsonify
 from flask_caching import Cache
 import argparse
+import re
 
 parser = argparse.ArgumentParser(description='Process some incoming HTTP requests.')
 parser.add_argument('--ledger', '-l', help='Switches the server to store the data locally instead of a remote DB',
                     action='store_true')
 args = parser.parse_args()
 
-logger = logging.getLogger()
-cache = Cache(config={'CACHE_TYPE': 'SimpleCache'})
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['wsgi']
+    }
+})
+
+config = {
+    "DEBUG": True,
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "MONGO_URI":
+        "mongodb+srv://user:HcSrNasKdaBBwJ0z@cluster0.wyb5l.mongodb.net/minimal_webapi?retryWrites=true&w=majority"
+}
+
 app = Flask(__name__)
-cache.init_app(app)
-app.config["MONGO_URI"] = \
-    "mongodb+srv://user:HcSrNasKdaBBwJ0z@cluster0.wyb5l.mongodb.net/minimal_webapi?retryWrites=true&w=majority"
+app.config.from_mapping(config)
+
 mongo = PyMongo(app)
 db = mongo.db
 
+cache = Cache(app)
+
 if args.ledger:
-    print('starting server with ledger instead of DB')
+    app.logger.info('starting server with ledger instead of DB')
     from ledger import Ledger
     ledger = Ledger()
 
 
 @app.route('/', methods=['POST'])
-@Cache.cached(cache, timeout=50)
 def receive():
     content = request.get_json()
     data = json.loads(content)
     payload = data['payload']
     if args.ledger:
-        if type(payload) is int:
-            ledger.ints[payload] += 1
-        elif type(payload) is float:
-            ledger.floats[payload] += 1
-        elif type(payload) is str:
-            ledger.strings[payload] += 1
-        else:
+        try:
+            ledger.insert(payload)
+            app.logger.info(f'ledgers are after insert:\n{ledger.ints}\n{ledger.floats}\n{ledger.strings}')
+        except TypeError:
             return jsonify('Unknown data type', success=False), 501
 
     else:
@@ -52,64 +72,88 @@ def receive():
             db.strings.insert_one(entry)
         else:
             return jsonify('Unknown data type', success=False), 501
+    return jsonify(success=True), 200
 
-    return jsonify(success=True)
 
+@app.route('/count/<item>', methods=["GET"])
+@cache.cached(10)
+def query_count(item):
+    with app.app_context():
+        cache.clear()
+    int_regex = r"^[-+]?[0-9]+$"
+    float_regex = r"^[-+]?[0-9]+\.[0-9]+$"
 
-@app.route('/count', methods=["POST"])
-@Cache.cached(cache, timeout=50)
-def query_count():
-    content = request.get_json()
-    data = json.loads(content)
-    payload = data['payload']
+    if re.match(int_regex, item):
+        query_type = 1
+    elif re.match(float_regex, item):
+        query_type = 1.0
+    else:
+        query_type = "string"
+
     if args.ledger:
-        print(f'{payload} was submitted {ledger.get_count(payload)} according to the ledger')
-        return jsonify({'payload': ledger.get_count(payload)}), 200
+        app.logger.debug(f'ledgers are before query:\n{ledger.ints}\n{ledger.floats}\n{ledger.strings}')
+        app.logger.info(f'{query_type} was submitted {ledger.get_count(item)} according to the ledger')
+        if type(query_type) is int:
+            return jsonify({'payload': ledger.get_count(int(item))}), 200
+        elif type(query_type) is float:
+            return jsonify({'payload': ledger.get_count(float(item))}), 200
+        else:
+            return jsonify({'payload': ledger.get_count(item)}), 200
 
     else:
-        query = {'value': payload}
-        if type(payload) is int:
+        if type(query_type) is int:
+            query = {'value': int(item)}
+        elif type(query_type) is float:
+            query = {'value': float(item)}
+        else:
+            query = {'value': item}
+
+        results = None
+        if type(query_type) is int:
+            app.logger.debug(f'submitting ints query: {query}')
             results = db.ints.count_documents(query)
-            print(results)
-            print(f'{payload} was submitted {results} times since the DB was initialized last.')
-            return jsonify({'payload': results}), 200
 
-        if type(payload) is float:
+        elif type(query_type) is float:
+            app.logger.debug(f'submitting floats query: {query}')
             results = db.floats.count_documents(query)
-            print(results)
-            print(f'{payload} was submitted {results} times since the DB was initialized last.')
-            return jsonify({'payload': results}), 200
 
-        if type(payload) is str:
+        elif type(query_type) is str:
+            app.logger.debug(f'submitting strings query: {query}')
             results = db.strings.count_documents(query)
-            print(results)
-            print(f'{payload} was submitted {results} times since the DB was initialized last.')
+
+        if results:
+            app.logger.info(f'{query_type} was submitted {results} times since the DB was initialized last.')
             return jsonify({'payload': results}), 200
+        else:
+            return jsonify(success=False), 500
 
 
-@app.route('/avg', methods=["POST"])
-@Cache.cached(cache, timeout=50)
-def query_avg():
-    content = request.get_json()
-    data = json.loads(content)
-    payload = data['payload']
+@app.route('/avg/<avg_type>', methods=["GET"])
+@cache.cached(10)
+def query_avg(avg_type):
+    with app.app_context():
+        cache.clear()
     if args.ledger:
-        if payload == 'int':
+        if avg_type == 'ints':
             return jsonify({'payload': ledger.get_avg('ints')}), 200
 
-        if payload == 'float':
+        if avg_type == 'floats':
             return jsonify({'payload': ledger.get_avg('floats')}), 200
+        return jsonify(succes=False), 500
 
     else:
         pipeline = [
             {"$group": {"_id": "1", "results": {"$avg": "$value"}}},
         ]
 
-        if payload == 'int':
+        if avg_type == 'ints':
             return jsonify({'payload': list(db.floats.aggregate(pipeline))[0]["results"]}), 200
 
-        if payload == 'float':
+        if avg_type == 'floats':
             return jsonify({'payload': list(db.floats.aggregate(pipeline))[0]["results"]}), 200
+
+        else:
+            return jsonify(success=False), 500
 
 
 if __name__ == '__main__':
