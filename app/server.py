@@ -72,15 +72,16 @@ def receive():
             db.strings.insert_one(entry)
         else:
             return jsonify('Unknown data type', success=False), 501
-
-    return jsonify(success=True)
+    return jsonify(success=True), 200
 
 
 @app.route('/count/<count_type>', methods=["GET"])
 @cache.cached(10, "ledger")
 def query_count(count_type):
-    int_regex = r"\d+(?=\.)"
-    float_regex = r"\d+\.\d+"
+    with app.app_context():
+        cache.clear()
+    int_regex = r"^[-+]?[0-9]+$"
+    float_regex = r"^[-+]?[0-9]+\.[0-9]+$"
 
     if re.match(int_regex, count_type):
         query_type = 1
@@ -107,7 +108,6 @@ def query_count(count_type):
             results = db.strings.count_documents(query)
 
         if results:
-            app.logger.info(results)
             app.logger.info(f'{query_type} was submitted {results} times since the DB was initialized last.')
             return jsonify({'payload': results}), 200
         else:
@@ -117,6 +117,8 @@ def query_count(count_type):
 @app.route('/avg/<avg_type>', methods=["GET"])
 @cache.cached(10, "ledger")
 def query_avg(avg_type):
+    with app.app_context():
+        cache.clear()
 
     if args.ledger:
         if avg_type == 'ints':
