@@ -1,3 +1,4 @@
+import logging
 from collections import Counter
 
 
@@ -26,6 +27,7 @@ class Ledger:
             c = Counter(self.strings)
         else:
             raise TypeError(f"Type is not tracked by the ledger:{item}.")
+        logging.debug(f'counter object: {c},\nitem is: {item}')
         return c[item]
 
     def get_avg(self, d_type):

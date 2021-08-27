@@ -22,7 +22,7 @@ dictConfig({
         'formatter': 'default'
     }},
     'root': {
-        'level': 'INFO',
+        'level': 'DEBUG',
         'handlers': ['wsgi']
     }
 })
@@ -75,36 +75,50 @@ def receive():
     return jsonify(success=True), 200
 
 
-@app.route('/count/<count_type>', methods=["GET"])
-@cache.cached(10, "ledger")
-def query_count(count_type):
+@app.route('/count/<item>', methods=["GET"])
+@cache.cached(10)
+def query_count(item):
     with app.app_context():
         cache.clear()
     int_regex = r"^[-+]?[0-9]+$"
     float_regex = r"^[-+]?[0-9]+\.[0-9]+$"
 
-    if re.match(int_regex, count_type):
+    if re.match(int_regex, item):
         query_type = 1
-    elif re.match(float_regex, count_type):
+    elif re.match(float_regex, item):
         query_type = 1.0
     else:
         query_type = "string"
 
     if args.ledger:
-        app.logger.info(f'ledgers are before query:\n{ledger.ints}\n{ledger.floats}\n{ledger.strings}')
-        app.logger.info(f'{query_type} was submitted {ledger.get_count(count_type)} according to the ledger')
-        return jsonify({'payload': ledger.get_count(query_type)}), 200
+        app.logger.debug(f'ledgers are before query:\n{ledger.ints}\n{ledger.floats}\n{ledger.strings}')
+        app.logger.info(f'{query_type} was submitted {ledger.get_count(item)} according to the ledger')
+        if type(query_type) is int:
+            return jsonify({'payload': ledger.get_count(int(item))}), 200
+        elif type(query_type) is float:
+            return jsonify({'payload': ledger.get_count(float(item))}), 200
+        else:
+            return jsonify({'payload': ledger.get_count(item)}), 200
 
     else:
-        query = {'value': query_type}
+        if type(query_type) is int:
+            query = {'value': int(item)}
+        elif type(query_type) is float:
+            query = {'value': float(item)}
+        else:
+            query = {'value': item}
+
         results = None
         if type(query_type) is int:
+            app.logger.debug(f'submitting ints query: {query}')
             results = db.ints.count_documents(query)
 
         elif type(query_type) is float:
+            app.logger.debug(f'submitting floats query: {query}')
             results = db.floats.count_documents(query)
 
         elif type(query_type) is str:
+            app.logger.debug(f'submitting strings query: {query}')
             results = db.strings.count_documents(query)
 
         if results:
@@ -115,11 +129,10 @@ def query_count(count_type):
 
 
 @app.route('/avg/<avg_type>', methods=["GET"])
-@cache.cached(10, "ledger")
+@cache.cached(10)
 def query_avg(avg_type):
     with app.app_context():
         cache.clear()
-
     if args.ledger:
         if avg_type == 'ints':
             return jsonify({'payload': ledger.get_avg('ints')}), 200

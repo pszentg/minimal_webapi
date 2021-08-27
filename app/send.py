@@ -11,7 +11,7 @@ data = {"payload": 1.0}
 data_json = json.dumps(data)
 requests.post("http://127.0.0.1:5000", json=data_json, headers={'Content-type': 'application/json'})
 
-message = f"the time now is: {time.time()}"
+message = f"time:{time.time()}"
 data = {"payload": message}
 data_json = json.dumps(data)
 requests.post("http://127.0.0.1:5000", json=data_json, headers={'Content-type': 'application/json'})
@@ -47,6 +47,3 @@ for i in range(5):
 
 r = requests.get("http://127.0.0.1:5000/avg/floats")
 print(f'response for avg of floats: {r.content}')
-
-
-
