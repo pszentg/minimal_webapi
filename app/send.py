@@ -14,19 +14,13 @@ data = {"payload": "mystring"}
 data_json = json.dumps(data)
 requests.post("http://127.0.0.1:5000", json=data_json, headers={'Content-type': 'application/json'})
 
-data = {"payload": 1}
-data_json = json.dumps(data)
-r = requests.post("http://127.0.0.1:5000/count", json=data_json, headers={'Content-type': 'application/json'})
+r = requests.get("http://127.0.0.1:5000/count/1")
 print(r.content)
 
-data = {"payload": 1.0}
-data_json = json.dumps(data)
-r = requests.post("http://127.0.0.1:5000/count", json=data_json, headers={'Content-type': 'application/json'})
+r = requests.get("http://127.0.0.1:5000/count/1.0")
 print(r.content)
 
-data = {"payload": "mystring"}
-data_json = json.dumps(data)
-r = requests.post("http://127.0.0.1:5000/count", json=data_json, headers={'Content-type': 'application/json'})
+r = requests.get("http://127.0.0.1:5000/count/mystring")
 print(r.content)
 
 # this is just for testing purposes
@@ -40,9 +34,7 @@ for i in range(5):
     data_json = json.dumps(data)
     requests.post("http://127.0.0.1:5000", json=data_json, headers={'Content-type': 'application/json'})
 
-data = {"payload": 'int'}
-data_json = json.dumps(data)
-r = requests.post("http://127.0.0.1:5000/avg", json=data_json, headers={'Content-type': 'application/json'})
+r = requests.get("http://127.0.0.1:5000/avg/ints")
 print(r.content)
 
 for i in range(5):
@@ -50,9 +42,8 @@ for i in range(5):
     data_json = json.dumps(data)
     requests.post("http://127.0.0.1:5000", json=data_json, headers={'Content-type': 'application/json'})
 
-data = {"payload": 'float'}
-data_json = json.dumps(data)
-r = requests.post("http://127.0.0.1:5000/avg", json=data_json, headers={'Content-type': 'application/json'})
+
+r = requests.get("http://127.0.0.1:5000/avg/floats")
 print(r.content)
 
 
