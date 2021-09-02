@@ -5,7 +5,6 @@ from flask import Flask, request, jsonify
 from flask_caching import Cache
 import argparse
 import re
-
 from app.atlas import Atlas
 
 parser = argparse.ArgumentParser(description='Process some incoming HTTP requests.')
@@ -41,7 +40,6 @@ app = Flask(__name__)
 app.config.from_mapping(config)
 
 db = Atlas(app)
-
 cache = Cache(app)
 
 if args.ledger:
@@ -109,6 +107,9 @@ def query_avg(avg_type):
 
     else:
         return db.query_avg(avg_type)
+
+        else:
+            return jsonify(success=False), 500
 
 
 if __name__ == '__main__':
