@@ -6,6 +6,8 @@ from flask_caching import Cache
 import argparse
 import re
 
+from app.atlas import Atlas
+
 parser = argparse.ArgumentParser(description='Process some incoming HTTP requests.')
 parser.add_argument('--ledger', '-l', help='Switches the server to store the data locally instead of a remote DB',
                     action='store_true')
@@ -38,8 +40,7 @@ config = {
 app = Flask(__name__)
 app.config.from_mapping(config)
 
-mongo = PyMongo(app)
-db = mongo.db
+db = Atlas(app)
 
 cache = Cache(app)
 
@@ -50,29 +51,18 @@ if args.ledger:
 
 
 @app.route('/', methods=['POST'])
-def receive():
+def insert():
     content = request.get_json()
     data = json.loads(content)
     payload = data['payload']
     if args.ledger:
         try:
-            ledger.insert(payload)
-            app.logger.info(f'ledgers are after insert:\n{ledger.ints}\n{ledger.floats}\n{ledger.strings}')
+            return ledger.insert(payload)
         except TypeError:
             return jsonify('Unknown data type', success=False), 501
 
     else:
-        entry = {'value': payload}
-        # insert into corresponding table depending on the type of value
-        if type(payload) is int:
-            db.ints.insert_one(entry)
-        elif type(payload) is float:
-            db.floats.insert_one(entry)
-        elif type(payload) is str:
-            db.strings.insert_one(entry)
-        else:
-            return jsonify('Unknown data type', success=False), 501
-    return jsonify(success=True), 200
+        return db.insert(payload)
 
 
 @app.route('/count/<item>', methods=["GET"])
@@ -101,31 +91,7 @@ def query_count(item):
             return jsonify({'payload': ledger.get_count(item)}), 200
 
     else:
-        if type(query_type) is int:
-            query = {'value': int(item)}
-        elif type(query_type) is float:
-            query = {'value': float(item)}
-        else:
-            query = {'value': item}
-
-        results = None
-        if type(query_type) is int:
-            app.logger.debug(f'submitting ints query: {query}')
-            results = db.ints.count_documents(query)
-
-        elif type(query_type) is float:
-            app.logger.debug(f'submitting floats query: {query}')
-            results = db.floats.count_documents(query)
-
-        elif type(query_type) is str:
-            app.logger.debug(f'submitting strings query: {query}')
-            results = db.strings.count_documents(query)
-
-        if results:
-            app.logger.info(f'{query_type} was submitted {results} times since the DB was initialized last.')
-            return jsonify({'payload': results}), 200
-        else:
-            return jsonify(success=False), 500
+        return db.query_count(item, query_type)
 
 
 @app.route('/avg/<avg_type>', methods=["GET"])
@@ -142,18 +108,7 @@ def query_avg(avg_type):
         return jsonify(succes=False), 500
 
     else:
-        pipeline = [
-            {"$group": {"_id": "1", "results": {"$avg": "$value"}}},
-        ]
-
-        if avg_type == 'ints':
-            return jsonify({'payload': list(db.floats.aggregate(pipeline))[0]["results"]}), 200
-
-        if avg_type == 'floats':
-            return jsonify({'payload': list(db.floats.aggregate(pipeline))[0]["results"]}), 200
-
-        else:
-            return jsonify(success=False), 500
+        return db.query_avg(avg_type)
 
 
 if __name__ == '__main__':

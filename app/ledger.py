@@ -1,5 +1,6 @@
 import logging
 from collections import Counter
+from flask import jsonify
 
 
 class Ledger:
@@ -17,6 +18,7 @@ class Ledger:
             self.strings.append(item)
         else:
             raise TypeError("Item is not supported by the ledger")
+        return jsonify(success=True), 200
 
     def get_count(self, item):
         if type(item) is int:
