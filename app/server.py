@@ -1,11 +1,9 @@
 import json
-from logging.config import dictConfig
-from flask_pymongo import PyMongo
-from flask import Flask, request, jsonify
-from flask_caching import Cache
 import argparse
 import re
-
+from logging.config import dictConfig
+from flask import Flask, request, jsonify
+from flask_caching import Cache
 from app.atlas import Atlas
 
 parser = argparse.ArgumentParser(description='Process some incoming HTTP requests.')
